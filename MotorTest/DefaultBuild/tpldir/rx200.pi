@@ -1,0 +1,17 @@
+-We=--template_info_file="D:\Workspace\Renesas\MotorTest\DefaultBuild\tpldir\rx200.ti"
+-We=--ii_file="D:\Workspace\Renesas\MotorTest\DefaultBuild\tpldir\rx200.ii"
+-We=--tentative_info_file="D:\Workspace\Renesas\MotorTest\DefaultBuild\tpldir\rx200.td"
+
+-output=obj="D:\Workspace\Renesas\MotorTest\DefaultBuild\rx200.obj"
+-isa=rxv2
+-fpu
+-lang=cpp
+-include=.
+-include=forte32\cpu\rx231\peripheral
+-include=forte32\cpu\rx231
+-include=forte32
+-debug
+-g_line
+-nologo
+-MAKEUD=DefaultBuild
+"forte32\cpu\rx200.cpp"

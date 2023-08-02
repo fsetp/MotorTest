@@ -1,0 +1,223 @@
+;-------------------------------------------------------------------------------
+;
+;
+
+	.include	rxv1asm.inc
+
+	.glb	_g_pTaskReg		; 初めての起動時は0になっている必要がある
+	.glb	_g_org_stack		; 非タスクのスタックポインタ保存先
+	.glb	_g_nWaitUsLoop		;
+	.glb	_g_bInterrupt		;
+	.glb	_SetupTaskParam__9CTaskCtrlSFv
+	.glb	_IntervalIntProc__9CTaskCtrlSFv
+
+	.section	B, data, align = 4
+
+;---------------------------------------
+
+;---------------------------------------
+	.rvector	VECT_TASK_SWITCH, _TaskSwitcher
+	.section	PIntPRG, code
+_TaskSwitcher:
+
+	push.l	r15			; タスク以外からスイッチされると、
+	mov.l	#_g_pTaskReg, r15	; _g_pTaskRegが０で入っていくる
+	mov.l	[r15], r15		; ストアをスキップする
+	cmp	#0, r15			;
+	pop	r15			;
+	bz	_ts_next		;
+
+	;
+	; 
+	;
+	push.l	r14			; バージンフラグがセットされていたら、
+	push.l	r15			; ストアをスキップする
+	mov.l	#_g_pTaskReg, r15	;
+	mov.l	[r15], r15		;
+	mov.l	20 * 4[r15], r14	;
+	cmp	#0, r14			;
+	mov.l	#0, 20 * 4[r15]		; バージンフラグのクリア
+	pop	r15			;
+	pop	r14			;
+	bne	_ts_next		;
+
+_ts_store:
+
+	;
+	; タスクレジスタ配列にレジスタを保存
+	;
+	StoreContext	_g_pTaskReg
+
+_ts_next:
+
+	mov.l	#_g_bInterrupt, r15	; 割り込み中フラグ
+	mov.b	#1, [r15]		; セット
+
+	; タスクレジスタの切替
+	; _g_pTaskRegに次のタスクのレジスタが入る
+	;
+	bsr	_SetupTaskParam__9CTaskCtrlSFv
+
+	mov.l	#_g_bInterrupt, r15	; 割り込み中フラグ
+	mov.b	#0, [r15]		; クリア
+
+_ts_restore:
+
+	mov.l	#_g_pTaskReg, r15	; バージンフラグのクリア
+	mov.l	[r15], r15		;
+	mov.l	#0, 20 * 4[r15]		;
+
+	;
+	; タスクレジスタ配列からレジスタを戻す
+	;
+	RestoreContext	_g_pTaskReg
+
+	rte
+
+;---------------------------------------
+
+;---------------------------------------
+	.rvector	VECT_RESTORE_SYSTEM, _RestoreSystem
+	.section	PIntPRG, code
+_RestoreSystem:
+
+	;
+	; 保存されていたユーザーモードのスタックポインタを戻す
+	;
+	push.l	r14			;
+	push.l	r15			;
+	mov.l	#_g_org_stack, r15	;
+	mov.l	[r15], r14		; restore user mode stack pointer
+	mvtc	r14, usp		; 
+	pop	r15			;
+	pop	r14			;
+
+	rte
+
+;---------------------------------------
+
+;---------------------------------------
+	.rvector	VECT_SUPERVISOR, _ChangeSupervisor
+	.section	PIntPRG, code
+
+_ChangeSupervisor:
+	push.l	r15			;
+
+	mov.l	8[r0], r15		;
+	bclr	#20, r15		; 0:supervisor mode / 1:usr mode
+	mov.l	r15, 8[r0]		;
+
+	pop	r15			;
+	rte
+
+;---------------------------------------
+
+;---------------------------------------
+	.rvector	VECT_ENTER_CRITICAL, _EnterSystemCritical
+	.section	PIntPRG, code
+
+_EnterSystemCritical:
+	push.l	r15			;
+
+	mov.l	8[r0], r15		;
+	bclr	#16, r15		; 0:disable interrupt / 1:enable interrupt
+	bclr	#20, r15		; 0:supervisor mode / 1:usr mode
+	mov.l	r15, 8[r0]		;
+
+	pop	r15			;
+	rte
+
+;---------------------------------------
+
+;---------------------------------------
+	.rvector	VECT_LEAVE_CRITICAL, _LeaveSystemCritical
+	.section	PIntPRG, code
+
+_LeaveSystemCritical:
+	push.l	r15			;
+
+	mov.l	8[r0], r15		;
+	bset	#16, r15		; 0:disable interrupt / 1:enable interrupt
+	bset	#20, r15		; 0:supervisor mode / 1:usr mode
+	mov.l	r15, 8[r0]		;
+
+	pop	r15			;
+	rte
+
+;---------------------------------------
+
+;---------------------------------------
+	.rvector	VECT_DISABLE_INTERRUPT, _DisableInterrupt
+	.section	PIntPRG, code
+
+_DisableInterrupt:
+	push.l	r15			;
+
+	mov.l	8[r0], r15		;
+	bclr	#16, r15		; 0:disable interrupt / 1:enable interrupt
+	mov.l	r15, 8[r0]		;
+
+	pop	r15			;
+	rte
+
+;---------------------------------------
+
+;---------------------------------------
+	.rvector	VECT_ENABLE_INTERRUPT, _EnableInterrupt
+	.section	PIntPRG, code
+
+_EnableInterrupt:
+	push.l	r15			;
+
+	mov.l	8[r0], r15		;
+	bset	#16, r15		; 0:disable interrupt / 1:enable interrupt
+	mov.l	r15, 8[r0]		;
+
+	pop	r15			;
+	rte
+
+;---------------------------------------
+
+;---------------------------------------
+	FIXED_STATE	.equ	42
+	WAIT_US_MIN	.equ	2
+
+	.rvector	VECT_WAIT_US, _WaitUSec
+	.section	PIntPRG, code
+
+_WaitUSec:
+
+	push.l	r15			; 1
+	mov.l	#_g_nWaitUsLoop, r15	; 1
+	mov.l	[r15], r15		; 3
+
+_WUloop:
+	cmp	#0, r15			; 1
+	bz	_WUexit			; 1 (3)
+
+	nop				; 1
+	nop				; 1
+	nop				; 1
+	nop				; 1
+	sub	#1, r15			; 1
+	bra	_WUloop			; 3
+
+_WUexit:
+	pop	r15			; 1
+	rte
+
+;---------------------------------------
+
+;---------------------------------------
+	.rvector	VECT_INTERVAL_TIMER, _IntervalTimer
+	.section	PIntPRG, code
+
+_IntervalTimer:
+	pushm	r1-r15
+	bsr	_IntervalIntProc__9CTaskCtrlSFv
+	popm	r1-r15
+	rte
+
+
+
+	.end

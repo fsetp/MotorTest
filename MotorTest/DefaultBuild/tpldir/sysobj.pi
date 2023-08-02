@@ -1,0 +1,16 @@
+-We=--template_info_file="E:\Workspace\Renesas\MotorTest\DefaultBuild\tpldir\sysobj.ti"
+-We=--ii_file="E:\Workspace\Renesas\MotorTest\DefaultBuild\tpldir\sysobj.ii"
+-We=--tentative_info_file="E:\Workspace\Renesas\MotorTest\DefaultBuild\tpldir\sysobj.td"
+
+-output=obj="E:\Workspace\Renesas\MotorTest\DefaultBuild\sysobj.obj"
+-isa=rxv2
+-fpu
+-lang=cpp
+-include=forte32\cpu\rx231\peripheral
+-include=forte32\cpu\rx231
+-include=forte32
+-debug
+-g_line
+-nologo
+-MAKEUD=DefaultBuild
+"forte32\cpu\rx231\peripheral\sysobj.cpp"

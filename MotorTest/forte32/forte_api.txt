@@ -1,0 +1,223 @@
+Forte16(tm)はルネサスCPU用に作られたリアルタイム・ＯＳです。
+
+	提供
+		Forte16は、以下のファイルにて提供されます。
+			forte16.lib
+			forte16lib.h
+		プロジェクトにライブラリとして組み込む事で使用できます。
+
+	アクセス
+		forte16は、スタティックなクラスとして、ライブラリの中に実体化されています。
+		forte16とのコンタクトは、GetTaskCtrl()あるいは、Forte16()によって行います。
+			例	Forte16().Initialize(20000000)
+
+	コンセプト
+		forte16はC++によるRTOSを前提に作られています。
+		実行最小単位はタスクです。forte16では、スレッドもタスクと同義語として扱います。
+
+
+	スレッドクラス
+		スレッドオブジェクトはスレッドクラスから派生したクラスにて動作します。
+		スレッドの親クラスはCThreadです。
+		例
+			class CFooThread : public CThread
+		
+		外部から呼べるスレッドクラスの関数
+			bool Initialize(unsigned long lFreq)
+			bool CreateThread(int nPriority, unsigned int wStackSize)
+			void Run()
+			void Stop()
+			void Suspend()
+			void Resume()
+
+	初期化
+		全てのOS動作に先がけて、初期化関数を呼ばなければなりません。
+		初期化には２つの方法があります。
+		スレッドクラスからの初期化
+			スレッドクラスのメンバ関数、Initialize()で初期化します。
+			bool Initialize(unsigned long lFreq)
+			lFerqはPUの動作周波数をHz単位で指定します
+				例	24MHz	24000000
+
+			実装例
+				class CFooThread : public CThread
+				{
+				};
+				
+				CFooThread g_foothread;
+				
+				CBar::sample()
+				{
+					g_foothread.Initialize(24000000);	// CPUクロック24MHz
+				}
+
+		スレッドクラスからでない初期化
+			forte16のスタティッククラスの初期化関数を呼びます。
+			bool CTaskCtrl::Initialize(unsigned long lFreq)
+			lFerqはPUの動作周波数をHz単位で指定します
+				例	24MHz	24000000
+
+			実装例
+				Forte16().Initialize(24000000);	// CPUクロック24MHz
+
+	タスクの生成
+		スレッドクラスから派生しただけでは、タスクは生成されません。
+		明示的に生成関数を呼ぶ必要があります。
+		bool CThread::CreateThread(int nPriority, unsigned int wStackSize)
+		引数
+			nPriorityはタスクに優先順位を指定します。以下の８種類か定義されています。
+				THREAD_PRIORITY_TIME_CRITICAL
+				THREAD_PRIORITY_HIGHEST
+				THREAD_PRIORITY_ABOVE_NORMAL
+				THREAD_PRIORITY_NORMAL
+				THREAD_PRIORITY_BELOW_NORMAL
+				THREAD_PRIORITY_LOWEST
+				THREAD_PRIORITY_ABOVE_IDLE
+				THREAD_PRIORITY_IDLE
+			通常は、THREAD_PRIORITY_NORMALを指定します。
+
+			wStackSizeは、タスク固有のスタックのバイトサイズを指定します。
+			通常は256以上の値を指定します。
+			スタックが小さいとメモリの上書きが発生します。
+			その場合、エラーコードERROR_TASK_STACK_OVERFLOWを設定し、abort()します。
+
+	タスクの実行
+		タスク生成直後
+			タスク生成だけでは、タスクは実行されません。
+			明示的に実行する必要があります。
+			void CThread::Run()
+			この関数を呼ぶ事で、スレッドクラスのタスク関数、int CThread::ThreadFunc()が実行されます。
+
+		タスク生成直後
+			既に実行されているタスクが停止している場合、他のタスクより実行を再開させる事ができます。
+			void CThread::Resume()
+
+	タスクの停止
+		実行中のタスクは、以下の関数を呼ぶ事で、実行を停止できます。
+			void CThread::Stop()
+			void CThread::Suspend()
+		タスクの停止は、タスク切替候補から除外し、直ちに他のタスクへ遷移します。
+
+	タスク関数
+		int CThread::ThreadFunc()
+		派生したスレッドクラスのタスク関数です。
+		void CThread::Run()を呼ぶ事でこの関数の先頭から実行されます。
+		タスク関数からは、以下の関数を呼ぶ事ができます。
+			void Run()
+			void Stop()
+			void Suspend()
+			void Resume()
+			void Sleep(unsigned int ms)
+			void WaitUs(unsigned int us)
+			unsigned long GetTickCount()
+			int MultiLock(bool bWaitAll, unsigned int ms, int nCount, ...)
+
+			unsigned int GetUsingStackSize()
+
+		タスク関数からの他のタスクへの実行権の遷移は、
+			void Stop()
+			void Suspend()
+			void Sleep(unsigned int ms)
+			int MultiLock(bool bWaitAll, unsigned int ms, int nCount, ...)
+			と、同期オブジェクトクラスの待ち関数の実行によって行われます。
+
+		例
+			int CFooThread::ThreadFunc()
+			{
+				// 初期化
+					…
+			
+				// 
+				while (1) {
+					//
+					…
+			
+					Sleep(100);	// 100msの待ち
+				}
+			
+				return 0;
+			}
+
+		終了
+			例ではタスク関数は終了しませんが、関数を終了させる事もできます。
+			タスク関数がリターンした場合、タスクは消滅し、次の有効なタスクに遷移します。
+
+	タスクの待ち
+		スリープによる待ち
+			ミリ秒単位でタスクの実行権を他のタスクに移す事ができる。
+				void CThread::Sleep(unsigned int ms)
+			ノンプリエンプティブなため、指定した時間で必ず戻ってくるとは限らない。
+			全てのタスクは一定の間隔でSleep()を呼び出す事が望ましい。
+
+		同期オブジェクトによる待ち
+			bool CThread::SignleLock(CSyncObjecr* pObject, unsigned int ms)
+				一つの同期オブジェクトがシグナルになるのを待ちます。
+				同期オブジェクトがシグナルになると、trueを返します。
+				指定されたミリ秒以内にシグナルにならない場合、タイムアウトによりfalseを返します。
+
+			int CThread::MultiLock(bool bWaitAll, unsigned int ms, int nCount, ...)
+				複数の同期オブジェクトがシグナルになるのを待ちます。
+				
+
+	デバッグ関数
+			デバッグをサポートする関数として、
+			unsigned int CThread::GetUsingStackSize()
+			があります。
+			この関数は、タスクが使用しているスタックのサイズを返します。
+			タスクのスタックサイズを決める時の参考として呼び出します。
+
+	同期オブジェクト
+		イベント
+			イベントオブジェクトは、公議においてのイベントと同等の機能を持つ。
+			forteでは、MFCの様なCEventクラスを使用できる。
+			CEvent
+				CEvent::CEvent(bool bManualReset = false, bool bInitialState = false)
+					コンストラクタは、自動リセットか手動リセットか、生成時にSetEvent状態かを指定します。
+
+				HANDLE CEvent::Create()
+					コンストラクタではイベントオブジェクトは生成されません。
+					この関数を呼ぶ事で明示的にオブジェクト生成を行います。
+
+				bool CEvent::SetEvent()
+					イベントをシグナル状態にします。
+					これにより、このイベントを待っているタスクは実行件を得る事になります。
+
+				bool CEvent::ResetEvent()
+					イベントをノンシグナル状態にします。
+					手動リセットイベントの場合、明示的に呼び出す必要があります。
+
+				bool CEvent::PulseEvent()
+					イベントをシグナルにした後、ノンシグナルに戻します。
+					手動リセットイベントで有効です。
+
+				bool CEvent::Lock(unsigned int ms)
+					イベント待ち状態に入ります。
+					msで指定されたミリ秒の間、シグナルにならなければ、タイムアウトします。
+					タイムアウトの場合、戻り値はfalseとなります。
+					イベントがシグナルになると、戻り値がtrueとなります。
+					この待ち関数は一つのイベントの待ちしかできません。複数の待ちを行う場合は、
+					CThread::MultiLock()を使用してください。
+
+		セマフォ
+			CSemapho
+				CSemapho::CSemapho(int nInitialCount = 1, int nMaximumCount = 1)
+				HANDLE CSemapho::Create()
+				bool CSemapho::Lock(unsigned int ms)
+				bool CSemapho::Unlock()
+
+
+		ミューテックス
+			CMutex
+				CMutex::CMutex(int nInitialCount = 1, int nMaximumCount = 1)
+				HANDLE CMutex::Create()
+				bool CMutex::Lock(unsigned int ms)
+				bool CMutex::Unlock()
+
+
+		クリティカルセクション
+			CCriticalSection
+				CCriticalSection::CCriticalSection()
+				HANDLE CCriticalSection::Create()
+				bool CCriticalSection::Lock()
+				bool CCriticalSection::Unlock()
+				
