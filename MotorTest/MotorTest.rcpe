@@ -42,6 +42,7 @@
         <Path>forte32\sys_heap.c</Path>
       </Category>
       <Path>bdc.h</Path>
+      <Path>bdc.cpp</Path>
     </Files>
     <DebugOptions>
       <ConnectSettings>
@@ -114,6 +115,7 @@
           <Path>DefaultBuild\sysobj.obj</Path>
           <Path>DefaultBuild\lowlvl.obj</Path>
           <Path>DefaultBuild\lowsrc.obj</Path>
+          <Path>DefaultBuild\bdc.obj</Path>
         </LinkOrder>
         <CommonOptions>
           <IncludePathForC>.</IncludePathForC>
@@ -196,6 +198,7 @@
           <Path>Debug\sysobj.obj</Path>
           <Path>Debug\lowlvl.obj</Path>
           <Path>Debug\lowsrc.obj</Path>
+          <Path>Debug\bdc.obj</Path>
         </LinkOrder>
         <CommonOptions>
           <IncludePathForC>.</IncludePathForC>
@@ -270,6 +273,7 @@
           <Path>Release\sysobj.obj</Path>
           <Path>Release\lowlvl.obj</Path>
           <Path>Release\lowsrc.obj</Path>
+          <Path>Release\bdc.obj</Path>
         </LinkOrder>
         <CommonOptions>
           <IncludePathForC>.</IncludePathForC>

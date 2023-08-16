@@ -163,8 +163,10 @@ CEvent sweve(true);
 int CThread1::ThreadFunc()
 {
 
-#if	0
+#if	1
 
+	g_bdc.EnableP24(true);
+	g_bdc.EnableBDC(true);
 	g_bdc.Sleep(false);
 	Sleep(100);
 
@@ -180,8 +182,8 @@ int CThread1::ThreadFunc()
 
 		g_bdc.Brake();
 		Sleep(100);
-	}	
-	
+	}
+
 #else
 
 	while (1) {
@@ -207,10 +209,10 @@ int CThread2::ThreadFunc()
 		Sleep(100);
 */
 
-		CDioObject::SetData(CDioObject::P_PD, 7, false);	// low
-		Sleep(100);
-		CDioObject::SetData(CDioObject::P_PD, 7, true);		// high
-		Sleep(100);
+//		CDioObject::SetData(CDioObject::P_PD, 7, false);	// low
+//		Sleep(100);
+//		CDioObject::SetData(CDioObject::P_PD, 7, true);		// high
+//		Sleep(100);
 	}
 	return 0;
 }

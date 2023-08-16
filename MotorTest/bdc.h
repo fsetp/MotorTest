@@ -12,7 +12,10 @@
 //	PE4		PH/IN2		OUT		
 //	PD7		LED1		OUT
 //	PD6		LED2		OUT
+//	P14		EN_P24V_S	OUT		
+//	P22		EN_VM_BDC	OUT		
 //
+//	PB1		SW			IRQ4
 //
 
 
@@ -27,77 +30,24 @@
 class CBdc
 {
 public:
-	CBdc()
-	{
-		// nSLEEP
-		//
-		CDioObject::SetData(CDioObject::P_PA, 1, true);
-		CDioObject::SetModeFunc(CDioObject::P_PA, 1, false);
-		CDioObject::SetOpenDrain(CDioObject::P_PA, 1, false);
-		CDioObject::SetDir(CDioObject::P_PA, 1, true);
+	CBdc();
+	~CBdc();
 
-		// PMODE
-		//
-		CDioObject::SetData(CDioObject::P_PA, 0, false);
-		CDioObject::SetModeFunc(CDioObject::P_PA, 0, false);
-		CDioObject::SetOpenDrain(CDioObject::P_PA, 0, false);
-		CDioObject::SetDir(CDioObject::P_PA, 0, true);
-
-		// EN
-		//
-		CDioObject::SetData(CDioObject::P_PE, 5, false);
-		CDioObject::SetModeFunc(CDioObject::P_PE, 5, false);
-		CDioObject::SetOpenDrain(CDioObject::P_PE, 5, false);
-		CDioObject::SetDir(CDioObject::P_PE, 5, true);
-
-		// PH
-		//
-		CDioObject::SetData(CDioObject::P_PE, 4, false);
-		CDioObject::SetModeFunc(CDioObject::P_PE, 4, false);
-		CDioObject::SetOpenDrain(CDioObject::P_PE, 4, false);
-		CDioObject::SetDir(CDioObject::P_PE, 4, true);
-
-		// Switch
-		//
-		CDioObject::SetData(CDioObject::P_PB, 1, false);
-		CDioObject::SetModeFunc(CDioObject::P_PB, 1, false);
-		CDioObject::SetOpenDrain(CDioObject::P_PB, 1, false);
-		CDioObject::SetDir(CDioObject::P_PB, 1, false);
-		CDioObject::SetInputPullup(CDioObject::P_PB, 1, false);
-	}
-
-	~CBdc()
-	{
-	}
-
-	void Forward()
-	{
-		CDioObject::SetData(CDioObject::P_PE, 5, true);
-		CDioObject::SetData(CDioObject::P_PE, 4, true);
-	}
-	
-	void Reverse()
-	{
-		CDioObject::SetData(CDioObject::P_PE, 5, true);
-		CDioObject::SetData(CDioObject::P_PE, 4, false);
-	}
-
-	void Brake()
-	{
-		CDioObject::SetData(CDioObject::P_PE, 5, false);
-		CDioObject::SetData(CDioObject::P_PE, 4, false);
-	}
-
-	void Sleep(bool bSleep)
-	{
-		CDioObject::SetData(CDioObject::P_PA, 1, !bSleep);
-	}
+	void EnableP24(bool bEnable);
+	void EnableBDC(bool bEnable);
+	void Forward();
+	void Reverse();
+	void Brake();
+	void Sleep(bool bSleep);
 
 private:
 
-
 protected:
 
+public:
+
+#pragma	interrupt CBdc::KeyInt(vect = 68)
+	static void KeyInt();
 };
 
 #endif

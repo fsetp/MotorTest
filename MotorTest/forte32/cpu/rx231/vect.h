@@ -246,7 +246,7 @@ void Excep_ICU_IRQ2(void);
 void Excep_ICU_IRQ3(void);
 
 // ICU IRQ4
-#pragma interrupt (Excep_ICU_IRQ4(vect=68))
+//#pragma interrupt (Excep_ICU_IRQ4(vect=68))
 void Excep_ICU_IRQ4(void);
 
 // ICU IRQ5
